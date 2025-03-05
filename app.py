@@ -2,8 +2,11 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 import urllib.parse
+import gspread
+from google.oauth2 import service_account
+import re
 
-# Set page configuration - using "centered" layout which is more mobile-friendly
+# Set page configuration
 st.set_page_config(
     page_title="Free Hotel Items Marketplace",
     page_icon="♻️",
@@ -11,23 +14,31 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Custom CSS to style the app with mobile-friendly design
+# Define category emojis
+category_emojis = {
+    "Furniture": "🪑",
+    "Electrical": "🔌",
+    "Crockery": "🍽️",
+    "Decor": "🎨",
+    "Fixtures": "💡",
+    "Others": "📦"
+}
+
+# Get emoji for a category (with fallback)
+def get_category_emoji(category):
+    return category_emojis.get(category, "📦")  # Default to package emoji if not found
+
+# Custom CSS for better mobile experience
 st.markdown("""
 <style>
     .main-header {
         font-size: 1.8rem;
         color: white;
-        background-color: #4CAF50;
+        background-color: #14289c;
         padding: 1rem;
         border-radius: 5px;
         margin-bottom: 1rem;
         text-align: center;
-    }
-    @media (max-width: 768px) {
-        .main-header {
-            font-size: 1.5rem;
-            padding: 0.8rem;
-        }
     }
     .item-card {
         border: 1px solid #ddd;
@@ -50,24 +61,6 @@ st.markdown("""
         flex-wrap: wrap;
         gap: 10px;
         margin-bottom: 20px;
-    }
-    .cat-button {
-        padding: 8px 15px;
-        border-radius: 20px;
-        font-size: 0.9rem;
-        cursor: pointer;
-        text-align: center;
-        border: 1px solid #ddd;
-        background-color: white;
-        color: #333;
-        font-weight: normal;
-        transition: all 0.3s;
-    }
-    .cat-button.active {
-        background-color: #e8f5e9;
-        color: #4CAF50;
-        border-color: #4CAF50;
-        font-weight: bold;
     }
     .free-tag {
         background-color: #e8f5e9;
@@ -95,23 +88,40 @@ st.markdown("""
     .contact-button:hover {
         background-color: #388E3C;
     }
-    .back-button {
-        margin-bottom: 1rem;
+    .view-image-button {
+        background-color: #2196F3;
+        color: white;
+        font-weight: bold;
+        border: none;
+        border-radius: 5px;
+        padding: 0.4rem 0.8rem;
+        cursor: pointer;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 0.9rem;
+        margin: 0.5rem 0;
     }
-    .breadcrumb {
+    .view-image-button:hover {
+        background-color: #0b7dda;
+    }
+    .placeholder-image {
+        height: 120px;
+        background-color: #f0f0f0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 5px;
+        margin-bottom: 10px;
+        text-align: center;
         color: #666;
-        margin-bottom: 1rem;
     }
-    .divider {
-        height: 1px;
-        background-color: #eee;
-        margin: 0.5rem 0 1rem 0;
+    .emoji-category {
+        font-size: 1.2rem;
+        margin-right: 0.5rem;
     }
     .stButton > button {
         width: 100%;
-    }
-    .search-container {
-        margin-bottom: 20px;
     }
     /* Hide Streamlit branding */
     #MainMenu {visibility: hidden;}
@@ -120,7 +130,96 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Function to create dummy data
+# Function to connect to Google Sheets
+@st.cache_resource
+def connect_to_sheets():
+    try:
+        # Create a connection object using the credentials
+        credentials = service_account.Credentials.from_service_account_info(
+            st.secrets["gcp_service_account"],
+            scopes=[
+                "https://www.googleapis.com/auth/spreadsheets"            ],
+        )
+        
+        # Create a gspread client
+        client = gspread.authorize(credentials)
+        
+        # Return the connected client
+        return client
+    except Exception as e:
+        st.error(f"Error connecting to Google Sheets: {e}")
+        return None
+
+# Function to load data from Google Sheets
+@st.cache_data(ttl=60)  # Cache data for 60 seconds
+def load_data():
+    try:
+        # Connect to Google Sheets
+        client = connect_to_sheets()
+        
+        if not client:
+            return create_dummy_data()
+            
+        # Open the spreadsheet by key from secrets
+        sheet_key = st.secrets["sheet_key"]
+        sheet = client.open_by_key(sheet_key)
+        
+        # Get the first worksheet (assuming Form Responses is the first sheet)
+        worksheet = sheet.get_worksheet(0)  # Index 0 is the first sheet
+        
+        # Get all records
+        records = worksheet.get_all_records()
+        
+        # Convert to DataFrame
+        df = pd.DataFrame(records)
+        
+        # Rename columns to match our app's expected format
+        column_mapping = {
+            'Timestamp': 'timestamp',
+            'Category': 'category',
+            'Name of the Item': 'name',
+            'Location of the Hotel': 'location',
+            'Quantity (Enter number)': 'quantity',
+            'Contact Email Address': 'contact_email',
+            'Contact Number': 'contact_phone',
+            'Upload a photo of the item': 'image_url',
+            'Ready to pick up by': 'pickup_date'
+        }
+        
+        # Rename columns based on the mapping
+        for old_name, new_name in column_mapping.items():
+            if old_name in df.columns:
+                df = df.rename(columns={old_name: new_name})
+        
+        # Create a unique ID for each item if not present
+        if 'id' not in df.columns:
+            df['id'] = range(1, len(df) + 1)
+            
+        # Set hotel name from location if hotel column doesn't exist
+        if 'hotel' not in df.columns and 'location' in df.columns:
+            df['hotel'] = df['location'].apply(lambda x: x.split(',')[0].strip() if isinstance(x, str) and ',' in x else x)
+            
+        # Set a default condition if not present
+        if 'condition' not in df.columns:
+            df['condition'] = 'Good'
+            
+        # Set a default subcategory if not present
+        if 'subcategory' not in df.columns and 'category' in df.columns:
+            df['subcategory'] = df['category']
+            
+        # Filter out items with quantity 0 or missing
+        if 'quantity' in df.columns:
+            df = df[df['quantity'].astype(str).str.strip() != '']
+            df['quantity'] = pd.to_numeric(df['quantity'], errors='coerce').fillna(0)
+            df = df[df['quantity'] > 0]
+            
+        return df
+    except Exception as e:
+        st.error(f"Error loading data: {e}")
+        # Fall back to dummy data in case of error
+        return create_dummy_data()
+
+# Fallback function to create dummy data
 def create_dummy_data():
     items = [
         {
@@ -132,113 +231,46 @@ def create_dummy_data():
             "location": "Orlando, FL",
             "quantity": 5,
             "condition": "Good",
-            "description": "Comfortable office chairs from our business center. Adjustable height and ergonomic design. Some minor wear but all mechanisms work perfectly.",
-            "image": "chair.jpg",
+            "description": "Comfortable office chairs from our business center.",
+            "image_url": "",
             "contact_email": "facilities@grandhotel.com",
-            "contact_phone": "407-555-0123"
+            "contact_phone": "407-555-0123",
+            "pickup_date": "2025-03-30"
         },
         {
             "id": 2,
             "name": "Bedside Lamps",
-            "category": "Decor",
+            "category": "Fixtures",
             "subcategory": "Lighting",
-            "hotel": "Seaside Resort",
-            "location": "Miami, FL",
+            "hotel": "Disney Land",
+            "location": "Disney Land",
             "quantity": 12,
             "condition": "Like New",
-            "description": "Modern bedside lamps with LED bulbs included. Brushed nickel finish. Only used for 6 months before our recent renovation.",
-            "image": "lamp.jpg",
+            "description": "Modern bedside lamps with LED bulbs included.",
+            "image_url": "",
             "contact_email": "inventory@seasideresort.com",
-            "contact_phone": "305-555-9876"
+            "contact_phone": "305-555-9876",
+            "pickup_date": "2025-04-15"
         },
         {
             "id": 3,
             "name": "Coffee Tables",
             "category": "Furniture",
             "subcategory": "Tables",
-            "hotel": "Mountain Lodge",
-            "location": "Denver, CO",
+            "hotel": "Disney Land",
+            "location": "Disney Land",
             "quantity": 3,
             "condition": "Good",
-            "description": "Solid wood coffee tables with rustic finish. 36\" diameter. Some minor scratches but structurally perfect.",
-            "image": "coffee_table.jpg",
+            "description": "Solid wood coffee tables with rustic finish.",
+            "image_url": "",
             "contact_email": "property@mountainlodge.com",
-            "contact_phone": "303-555-4567"
-        },
-        {
-            "id": 4,
-            "name": "TV Stands",
-            "category": "Furniture",
-            "subcategory": "Storage",
-            "hotel": "City View Hotel",
-            "location": "Seattle, WA",
-            "quantity": 8,
-            "condition": "Fair",
-            "description": "TV stands that can hold up to 55\" TVs. Includes cable management and drawer. Some wear and tear but fully functional.",
-            "image": "tv_stand.jpg",
-            "contact_email": "maintenance@cityviewhotel.com",
-            "contact_phone": "206-555-7890"
-        },
-        {
-            "id": 5,
-            "name": "Mini Fridges",
-            "category": "Appliances",
-            "subcategory": "Refrigeration",
-            "hotel": "Bayside Inn",
-            "location": "San Diego, CA",
-            "quantity": 4,
-            "condition": "Good",
-            "description": "Compact mini refrigerators, 3.2 cubic feet. Clean and in working order, some may have minor cosmetic blemishes on the exterior.",
-            "image": "mini_fridge.jpg",
-            "contact_email": "operations@baysideinn.com",
-            "contact_phone": "619-555-2345"
-        },
-        {
-            "id": 6,
-            "name": "Office Desks",
-            "category": "Furniture",
-            "subcategory": "Desks",
-            "hotel": "Business Suites",
-            "location": "Chicago, IL",
-            "quantity": 6,
-            "condition": "Good",
-            "description": "Standard office desks from our business center. Dimensions: 48\" × 30\" × 29\". In good condition with some minor scratches. Must pickup by March 30th.",
-            "image": "desk.jpg",
-            "contact_email": "items@businesssuites.com",
-            "contact_phone": "312-555-6789"
-        },
-        {
-            "id": 7,
-            "name": "Bathroom Mirrors",
-            "category": "Fixtures",
-            "subcategory": "Bathroom",
-            "hotel": "Luxury Downtown",
-            "location": "New York, NY",
-            "quantity": 10,
-            "condition": "Excellent",
-            "description": "Framed bathroom mirrors, 24\" × 36\". Excellent condition, removed during recent updating of decor.",
-            "image": "mirror.jpg",
-            "contact_email": "renovations@luxurydowntown.com",
-            "contact_phone": "212-555-0987"
-        },
-        {
-            "id": 8,
-            "name": "Flat Screen TVs (32\")",
-            "category": "Electronics",
-            "subcategory": "Televisions",
-            "hotel": "Resort & Spa",
-            "location": "Phoenix, AZ",
-            "quantity": 15,
-            "condition": "Good",
-            "description": "32-inch LCD TVs. All in working condition, minor scratches on some. HDMI and cable inputs. Remote controls included.",
-            "image": "tv.jpg",
-            "contact_email": "equipment@resortspa.com",
-            "contact_phone": "480-555-3456"
+            "contact_phone": "303-555-4567",
+            "pickup_date": "2025-03-25"
         }
     ]
     return pd.DataFrame(items)
 
-# Create email link for contacting about an item
+# Function to create email link
 def create_email_link(email, subject, body=""):
     params = {
         'subject': subject,
@@ -246,9 +278,15 @@ def create_email_link(email, subject, body=""):
     }
     return f"mailto:{email}?{urllib.parse.urlencode(params)}"
 
+# Function to refresh data
+def refresh_data():
+    st.cache_data.clear()
+    st.session_state.items_data = load_data()
+    st.success("Data refreshed successfully!")
+
 # Session state initialization
 if 'items_data' not in st.session_state:
-    st.session_state.items_data = create_dummy_data()
+    st.session_state.items_data = load_data()
 if 'current_page' not in st.session_state:
     st.session_state.current_page = 'home'
 if 'selected_item_id' not in st.session_state:
@@ -269,26 +307,51 @@ def set_category(category):
     st.session_state.selected_category = category
     st.session_state.current_page = 'home'
 
+# Get unique categories from data
+def get_categories():
+    categories = ['All']
+    if 'items_data' in st.session_state and 'category' in st.session_state.items_data.columns:
+        unique_categories = st.session_state.items_data['category'].dropna().unique().tolist()
+        categories.extend(sorted(unique_categories))
+    return categories
+
 # Home page with item listings
 def show_home_page():
     # Header
     st.markdown('<div class="main-header">Free Hotel Items Marketplace</div>', unsafe_allow_html=True)
     
+    # Refresh data button
+    col1, col2 = st.columns([1, 3])
+    with col1:
+        if st.button("↻ Refresh Data", use_container_width=True):
+            refresh_data()
+            
+    with col2:
+        st.write("Data automatically refreshes every 60 seconds")
+    
     # Search bar
-    st.markdown('<div class="search-container">', unsafe_allow_html=True)
     search_query = st.text_input("Search for items...", "")
-    st.markdown('</div>', unsafe_allow_html=True)
     
-    # Category navigation - more responsive approach
-    categories = ['All', 'Furniture', 'Electronics', 'Decor', 'Fixtures', 'Appliances']
+    # Category buttons - dynamically generated from data
+    st.markdown("**Filter by Category:**")
+    categories = get_categories()
     
-    # Using custom HTML buttons for better responsive layout
-    st.markdown('<div class="category-buttons">', unsafe_allow_html=True)
-    for category in categories:
-        active_class = "active" if category == st.session_state.selected_category else ""
-        if st.button(category, key=f"cat_{category}"):
-            set_category(category)
-    st.markdown('</div>', unsafe_allow_html=True)
+    # Use flexible wrapping for category buttons
+    # Calculate how many columns to use based on number of categories
+    num_cols = min(3, len(categories))  # Max 3 columns
+    cols = st.columns(num_cols)
+    
+    for i, category in enumerate(categories):
+        with cols[i % num_cols]:
+            button_type = "primary" if category == st.session_state.selected_category else "secondary"
+            # Add emoji to category button if it's not "All"
+            button_label = category
+            if category != 'All':
+                emoji = get_category_emoji(category)
+                button_label = f"{emoji} {category}"
+                
+            if st.button(button_label, key=f"cat_{category}", type=button_type, use_container_width=True):
+                set_category(category)
     
     # Filter data based on selected category and search
     filtered_data = st.session_state.items_data
@@ -296,8 +359,11 @@ def show_home_page():
         filtered_data = filtered_data[filtered_data['category'] == st.session_state.selected_category]
     
     if search_query:
-        filtered_data = filtered_data[filtered_data['name'].str.contains(search_query, case=False) | 
-                                     filtered_data['description'].str.contains(search_query, case=False)]
+        # Safe string contains check with na=False to handle missing values
+        filtered_data = filtered_data[
+            filtered_data['name'].str.contains(search_query, case=False, na=False) | 
+            filtered_data['location'].str.contains(search_query, case=False, na=False)
+        ]
     
     # Display items in a grid
     st.markdown(f"### Available Items ({len(filtered_data)})")
@@ -305,128 +371,169 @@ def show_home_page():
     if len(filtered_data) == 0:
         st.info("No items match your criteria. Try a different category or search term.")
     else:
-        # Determine screen size automatically and adjust column count
-        # We'll detect mobile based on screen width in the browser
-        # For small screens (width < 768px), use 1 column
-        # For medium screens, use 2 columns
+        # Display items in a 1 or 2-column layout depending on screen size
+        use_one_column = st.checkbox("Single column view", value=False, key="single_col")
+        cols_per_row = 1 if use_one_column else 2
         
-        # Create rows with appropriate columns for device size
-        col_count = 1  # Default to 1 column for mobile
+        # Calculate rows needed
+        num_items = len(filtered_data)
+        rows_needed = (num_items + cols_per_row - 1) // cols_per_row
         
-        # For larger screens, we'll use 2 columns
-        if not st.checkbox("Mobile view", value=False, key="mobile_toggle", label_visibility="collapsed"):
-            col_count = 2
-            
-        for i in range(0, len(filtered_data), col_count):
-            cols = st.columns(col_count)
-            for j in range(col_count):
-                if i+j < len(filtered_data):
-                    item = filtered_data.iloc[i+j]
-                    with cols[j]:
-                        st.markdown(f'<div class="item-card">', unsafe_allow_html=True)
-                        # Item image (placeholder)
-                        st.markdown(f'<div style="height: 140px; background-color: #f0f0f0; display: flex; align-items: center; justify-content: center; border-radius: 5px; margin-bottom: 10px;">Item Photo</div>', unsafe_allow_html=True)
-                        # Item name
-                        st.markdown(f'<div class="item-title">{item["name"]}</div>', unsafe_allow_html=True)
-                        # Hotel and quantity
-                        st.markdown(f'<div class="item-hotel">{item["hotel"]} • {item["quantity"]} available</div>', unsafe_allow_html=True)
-                        # View button
-                        if st.button(f"View Details", key=f"view_{item['id']}"):
-                            navigate_to_item_details(item['id'])
-                        st.markdown('</div>', unsafe_allow_html=True)
+        # Create the grid
+        for row in range(rows_needed):
+            cols = st.columns(cols_per_row)
+            for col in range(cols_per_row):
+                item_idx = row * cols_per_row + col
+                if item_idx < num_items:
+                    item = filtered_data.iloc[item_idx]
+                    with cols[col]:
+                        with st.container():
+                            # Show category emoji with name
+                            emoji = get_category_emoji(item['category'])
+                            st.markdown(f"### {emoji} {item['name']}")
+                            
+                            # Instead of displaying image, show placeholder and a button to view image
+                            if 'image_url' in item and item['image_url'] and str(item['image_url']).strip() != '':
+                                st.markdown(f'<div class="placeholder-image">📷 Photo Available</div>', unsafe_allow_html=True)
+                                st.markdown(f'<a href="{item["image_url"]}" target="_blank" class="view-image-button">View Photo</a>', unsafe_allow_html=True)
+                            else:
+                                st.markdown(f'<div class="placeholder-image">No Photo Available</div>', unsafe_allow_html=True)
+                            
+                            # Item details
+                            st.markdown(f"**Location:** {item['location']}")
+                            st.markdown(f"**Available:** {int(item['quantity'])}")
+                            
+                            # Show pickup date if available
+                            if 'pickup_date' in item and item['pickup_date'] and str(item['pickup_date']).strip() != '':
+                                st.markdown(f"**Ready by:** {item['pickup_date']}")
+                            
+                            # View button
+                            if st.button(f"View Details", key=f"view_{item['id']}", use_container_width=True):
+                                navigate_to_item_details(item['id'])
+                            
+                            st.markdown("---")
 
 # Item details page
 def show_item_details():
-    # Get the selected item
-    item = st.session_state.items_data[st.session_state.items_data['id'] == st.session_state.selected_item_id].iloc[0]
-    
-    # Header
-    st.markdown('<div class="main-header">Free Hotel Items Marketplace</div>', unsafe_allow_html=True)
-    
-    # Back button
-    if st.button("← Back to listings", key="back_button"):
-        back_to_home()
-    
-    # Breadcrumb
-    st.markdown(f'<div class="breadcrumb">Home > {item["category"]} > {item["name"]}</div>', unsafe_allow_html=True)
-    
-    # Item details container
-    st.markdown('<div style="background-color: white; padding: 20px; border-radius: 5px;">', unsafe_allow_html=True)
-    
-    # Determine if we should use mobile layout
-    # For mobile, we'll stack everything vertically
-    # For desktop, we'll use a two-column layout
-    is_mobile = st.checkbox("Mobile view", value=False, key="mobile_toggle_detail", label_visibility="collapsed")
-    
-    if is_mobile:
-        # Mobile layout - stack vertically
-        # First image
-        st.markdown(f'<div style="height: 200px; background-color: #f0f0f0; display: flex; align-items: center; justify-content: center; border-radius: 5px; margin-bottom: 15px;">Item Photo</div>', unsafe_allow_html=True)
+    try:
+        # Get the selected item
+        item = st.session_state.items_data[st.session_state.items_data['id'] == st.session_state.selected_item_id].iloc[0]
         
-        # Then details
-        st.markdown(f"<h2>{item['name']}</h2>", unsafe_allow_html=True)
-        st.markdown(f'<span class="free-tag">FREE</span> <span class="free-tag">{item["quantity"]} available</span>', unsafe_allow_html=True)
+        # Header
+        st.markdown('<div class="main-header">Free Hotel Items Marketplace</div>', unsafe_allow_html=True)
         
-        # Item details
-        st.markdown("<h3>Item Details</h3>", unsafe_allow_html=True)
-        st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
-        st.markdown(f"**Condition:** {item['condition']}", unsafe_allow_html=True)
-        st.markdown(f"**Category:** {item['category']} > {item['subcategory']}", unsafe_allow_html=True)
+        # Back button
+        if st.button("← Back to listings", key="back_button"):
+            back_to_home()
         
-        # Description
-        st.markdown("<h3>Description</h3>", unsafe_allow_html=True)
-        st.markdown(f'<div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; border: 1px solid #ddd; margin-bottom: 15px;">{item["description"]}</div>', unsafe_allow_html=True)
+        # Breadcrumb
+        emoji = get_category_emoji(item['category'])
+        st.markdown(f"**Home > {emoji} {item['category']} > {item['name']}**")
+        st.markdown("---")
         
-        # Hotel information
-        st.markdown("<h3>Offered By</h3>", unsafe_allow_html=True)
-        st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
-        st.markdown(f"**{item['hotel']}**", unsafe_allow_html=True)
-        st.markdown(f"{item['location']}", unsafe_allow_html=True)
-        st.markdown(f"**Email:** {item['contact_email']}", unsafe_allow_html=True)
-        st.markdown(f"**Phone:** {item['contact_phone']}", unsafe_allow_html=True)
+        # Check if mobile size
+        use_mobile_layout = st.checkbox("Mobile layout", value=False, key="mobile_layout", label_visibility="collapsed")
         
-    else:
-        # Desktop layout - side by side
-        col1, col2 = st.columns([4, 6])
-        
-        with col1:
-            # Item image (placeholder)
-            st.markdown(f'<div style="height: 300px; background-color: #f0f0f0; display: flex; align-items: center; justify-content: center; border-radius: 5px;">Item Photo</div>', unsafe_allow_html=True)
+        if use_mobile_layout:
+            # MOBILE LAYOUT - Stack vertically
             
-            # Description
-            st.markdown("<h3>Description</h3>", unsafe_allow_html=True)
-            st.markdown(f'<div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; border: 1px solid #ddd;">{item["description"]}</div>', unsafe_allow_html=True)
-        
-        with col2:
-            # Item title
-            st.markdown(f"<h2>{item['name']}</h2>", unsafe_allow_html=True)
+            # Instead of displaying image, show placeholder and a button to view image
+            if 'image_url' in item and item['image_url'] and str(item['image_url']).strip() != '':
+                st.markdown(f'<div style="height: 200px; background-color: #f0f0f0; display: flex; align-items: center; justify-content: center; border-radius: 5px; margin-bottom: 15px; flex-direction: column;">'
+                            f'<div style="font-size: 2rem; margin-bottom: 10px;">📷</div>'
+                            f'<div>Photo Available</div>'
+                            f'</div>', unsafe_allow_html=True)
+                st.markdown(f'<a href="{item["image_url"]}" target="_blank" class="view-image-button" style="display: block; width: 150px; margin: 0 auto 20px auto; text-align: center;">View Full Photo</a>', unsafe_allow_html=True)
+            else:
+                st.markdown(f'<div style="height: 200px; background-color: #f0f0f0; display: flex; align-items: center; justify-content: center; border-radius: 5px; margin-bottom: 15px;">No Photo Available</div>', unsafe_allow_html=True)
             
-            # Free tag and quantity
-            st.markdown(f'<span class="free-tag">FREE</span> <span class="free-tag">{item["quantity"]} available</span>', unsafe_allow_html=True)
+            # Item title and tags
+            emoji = get_category_emoji(item['category'])
+            st.markdown(f"## {emoji} {item['name']}")
+            st.markdown(f"""
+            <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;">
+                <span class="free-tag">FREE</span>
+                <span class="free-tag">{int(item['quantity'])} available</span>
+                <span class="free-tag">{item['category']}</span>
+            </div>
+            """, unsafe_allow_html=True)
             
             # Item details
-            st.markdown("<h3>Item Details</h3>", unsafe_allow_html=True)
-            st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
-            st.markdown(f"**Condition:** {item['condition']}", unsafe_allow_html=True)
-            st.markdown(f"**Category:** {item['category']} > {item['subcategory']}", unsafe_allow_html=True)
+            st.markdown("### Item Details")
+            st.markdown(f"**Category:** {emoji} {item['category']}")
+            
+            # Pickup date
+            if 'pickup_date' in item and item['pickup_date'] and str(item['pickup_date']).strip() != '':
+                st.markdown(f"**Ready for pickup by:** {item['pickup_date']}")
             
             # Hotel information
-            st.markdown("<h3>Offered By</h3>", unsafe_allow_html=True)
-            st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
-            st.markdown(f"**{item['hotel']}**", unsafe_allow_html=True)
-            st.markdown(f"{item['location']}", unsafe_allow_html=True)
-            st.markdown(f"**Email:** {item['contact_email']}", unsafe_allow_html=True)
-            st.markdown(f"**Phone:** {item['contact_phone']}", unsafe_allow_html=True)
+            st.markdown("### Location & Contact")
+            st.markdown(f"**Location:** {item['location']}")
+            st.markdown(f"**Email:** {item['contact_email']}")
+            if 'contact_phone' in item and item['contact_phone']:
+                st.markdown(f"**Phone:** {item['contact_phone']}")
+            
+            # Timestamp
+            if 'timestamp' in item and item['timestamp']:
+                st.markdown(f"**Listed on:** {item['timestamp']}")
+            
+        else:
+            # DESKTOP LAYOUT - Side by side
+            col1, col2 = st.columns([4, 6])
+            
+            with col1:
+                # Instead of displaying image, show placeholder and a button to view image
+                if 'image_url' in item and item['image_url'] and str(item['image_url']).strip() != '':
+                    st.markdown(f'<div style="height: 250px; background-color: #f0f0f0; display: flex; align-items: center; justify-content: center; border-radius: 5px; margin-bottom: 15px; flex-direction: column;">'
+                                f'<div style="font-size: 2.5rem; margin-bottom: 10px;">📷</div>'
+                                f'<div>Photo Available</div>'
+                                f'</div>', unsafe_allow_html=True)
+                    st.markdown(f'<a href="{item["image_url"]}" target="_blank" class="view-image-button" style="display: block; width: 150px; margin: 0 auto 20px auto; text-align: center;">View Full Photo</a>', unsafe_allow_html=True)
+                else:
+                    st.markdown(f'<div style="height: 300px; background-color: #f0f0f0; display: flex; align-items: center; justify-content: center; border-radius: 5px; margin-bottom: 15px;">No Photo Available</div>', unsafe_allow_html=True)
+                
+                # Timestamp
+                if 'timestamp' in item and item['timestamp']:
+                    st.markdown(f"**Listed on:** {item['timestamp']}")
+            
+            with col2:
+                # Item title and tags
+                emoji = get_category_emoji(item['category'])
+                st.markdown(f"## {emoji} {item['name']}")
+                st.markdown(f"""
+                <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;">
+                    <span class="free-tag">FREE</span>
+                    <span class="free-tag">{int(item['quantity'])} available</span>
+                    <span class="free-tag">{item['category']}</span>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Item details
+                st.markdown("### Item Details")
+                st.markdown(f"**Category:** {emoji} {item['category']}")
+                
+                # Pickup date
+                if 'pickup_date' in item and item['pickup_date'] and str(item['pickup_date']).strip() != '':
+                    st.markdown(f"**Ready for pickup by:** {item['pickup_date']}")
+                
+                # Hotel information
+                st.markdown("### Location & Contact")
+                st.markdown(f"**Location:** {item['location']}")
+                st.markdown(f"**Email:** {item['contact_email']}")
+                if 'contact_phone' in item and item['contact_phone']:
+                    st.markdown(f"**Phone:** {item['contact_phone']}")
+        
+        # Create email subject and link
+        email_subject = f"Interested in: {item['name']} (Free Hotel Marketplace)"
+        email_body = f"Hello,\n\nI am interested in the {item['name']} you have listed on the Free Hotel Marketplace.\n\nPlease let me know about availability and pickup arrangements.\n\nThank you!"
+        email_link = create_email_link(item['contact_email'], email_subject, email_body)
+        
+        # Contact button
+        st.markdown(f'<a href="{email_link}" class="contact-button">Contact for Pickup</a>', unsafe_allow_html=True)
     
-    # Create email subject and link
-    email_subject = f"Interested in: {item['name']} (Free Hotel Marketplace)"
-    email_body = f"Hello {item['hotel']},\n\nI am interested in the {item['name']} you have listed on the Free Hotel Marketplace.\n\nPlease let me know about availability and pickup arrangements.\n\nThank you!"
-    email_link = create_email_link(item['contact_email'], email_subject, email_body)
-    
-    # Contact button - linked to email with pre-populated subject
-    st.markdown(f'<a href="{email_link}" class="contact-button">Contact for Pickup</a>', unsafe_allow_html=True)
-    
-    st.markdown('</div>', unsafe_allow_html=True)
+    except Exception as e:
+        st.error(f"Error displaying item details: {e}")
+        st.button("Go back to listings", on_click=back_to_home)
 
 # Display the appropriate page based on state
 if st.session_state.current_page == 'home':
@@ -435,5 +542,5 @@ elif st.session_state.current_page == 'item_details':
     show_item_details()
 
 # Small footer
-st.markdown("<hr>", unsafe_allow_html=True)
-st.markdown("<div style='text-align: center; color: #666; padding: 10px;'>© 2025 Free Hotel Items Marketplace</div>", unsafe_allow_html=True)
+st.markdown("---")
+st.markdown("<div style='text-align: center; color: #666;'>© 2025 Free Hotel Items Marketplace</div>", unsafe_allow_html=True)
