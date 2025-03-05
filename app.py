@@ -526,8 +526,7 @@ def show_item_details():
         # Create email subject and link
         email_subject = f"Interested in: {item['name']} (Free Hotel Marketplace)"
         email_body = f"Hello,\n\nI am interested in the {item['name']} you have listed on the Free Hotel Marketplace.\n\nPlease let me know about availability and pickup arrangements.\n\nThank you!"
-        email_link = create_email_link(item['contact_email'], email_subject, email_body)
-        
+        email_link = create_email_link(item['contact_email'], email_subject, email_body)        
         # Contact button
         st.markdown(f'<a href="{email_link}" class="contact-button">Contact for Pickup</a>', unsafe_allow_html=True)
     
