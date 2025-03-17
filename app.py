@@ -8,7 +8,7 @@ import re
 
 # Set page configuration
 st.set_page_config(
-    page_title="Free Hotel Items Marketplace",
+    page_title="4C Group - Free Items Marketplace",
     page_icon="♻️",
     layout="centered",
     initial_sidebar_state="collapsed"
