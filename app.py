@@ -318,7 +318,7 @@ def get_categories():
 # Home page with item listings
 def show_home_page():
     # Header
-    st.markdown('<div class="main-header">Free Hotel Items Marketplace</div>', unsafe_allow_html=True)
+    st.markdown('<div class="main-header">4C Group - Free Items Marketplace</div>', unsafe_allow_html=True)
     
     # Refresh data button
     col1, col2 = st.columns([1, 3])
