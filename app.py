@@ -657,7 +657,7 @@ st.markdown("""
     }
     
     .item-content {
-        padding: 1rem;
+        padding: 0rem;
     }
     
     .item-title {
@@ -953,12 +953,12 @@ def show_home_page():
     st.markdown("""
     <div class="hero-header">
         <div class="hero-title">♻️Marketplace</div>
-        <div class="hero-subtitle">Transform waste into opportunity. Find quality items from hotels, absolutely free.</div>
+        <div class="hero-subtitle">Transform waste into opportunity. Find quality items from hotels either for free or for a small price.</div>
     </div>
     """, unsafe_allow_html=True)
     
     # Give away button using pure Streamlit
-    st.link_button("🎁 Have something to give away?", "https://forms.gle/TNvTKqgkoayQRudKA", use_container_width=True)
+    st.link_button("🎁 Have something to give away? Click on this button to add your items", "https://forms.gle/TNvTKqgkoayQRudKA", use_container_width=True)
     
     # Stats - keeping beautiful design
     total_items = len(st.session_state.items_data)
@@ -983,11 +983,13 @@ def show_home_page():
     """, unsafe_allow_html=True)
     
     # Search and refresh
-    col1, col2 = st.columns([3, 1])
+    # Search and refresh inline
+    col1, col2 = st.columns([4, 1])
     with col1:
         search_query = st.text_input("🔍 Search items...", "", placeholder="Search by name, location, or description")
     with col2:
-        if st.button("🔄", help="Refresh data"):
+        st.write("")  # Add some spacing to align with text input
+        if st.button("🔄 Refresh", help="Refresh data", use_container_width=True):
             refresh_data()
     
     # Category buttons
