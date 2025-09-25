@@ -1025,40 +1025,37 @@ def show_home_page():
         st.info("🔍 No items found. Try a different category or search term.")
     else:
         # Display items using styled cards but with Streamlit content
+# Display items in individual boxes
         for idx, item in filtered_data.iterrows():
             emoji = get_category_emoji(item['category'])
             
-            # Create styled item card
-            st.markdown('<div class="item-card"><div class="item-content">', unsafe_allow_html=True)
-            
-            # Item header with Streamlit components
-            col1, col2 = st.columns([3, 1])
-            with col1:
-                st.markdown(f'<div class="item-category">{emoji} {item["category"]}</div>', unsafe_allow_html=True)
-                st.markdown(f'<div class="item-title">{item["name"]}</div>', unsafe_allow_html=True)
-                st.markdown(f'<span class="quantity-badge">{int(item["quantity"])} Available</span>', unsafe_allow_html=True)
-            
-            with col2:
-                if item.get('image_url') and str(item['image_url']).strip():
-                    st.link_button("📸", item['image_url'])
-            
-            # Location and pickup - using Streamlit write
-            st.write(f"📍 **Location:** {item['location']}")
-            if item.get('pickup_date') and str(item['pickup_date']).strip():
-                st.write(f"📅 **Ready by:** {item['pickup_date']}")
-            
-            # Description in styled box
-            description = str(item.get('description', 'Contact for more details'))
-            if len(description) > 120:
-                description = description[:120] + "..."
-            st.markdown(f'<div class="item-description-box">{description}</div>', unsafe_allow_html=True)
-            
-            # Close the card div
-            st.markdown('</div></div>', unsafe_allow_html=True)
-            
-            # View button
-            if st.button(f"View Details for {item['name']}", key=f"view_{item['id']}", use_container_width=True, type="primary"):
-                navigate_to_item_details(item['id'])
+            # Create a container for each item (this creates a proper box)
+            with st.container(border=True):
+                # Item header
+                col1, col2 = st.columns([3, 1])
+                with col1:
+                    st.markdown(f"**{emoji} {item['name']}**")
+                    st.caption(f"{item['category']} • {int(item['quantity'])} Available")
+                
+                with col2:
+                    if item.get('image_url') and str(item['image_url']).strip():
+                        st.link_button("📸", item['image_url'], use_container_width=True)
+                
+                # Location and pickup info
+                st.write(f"📍 **Location:** {item['location']}")
+                if item.get('pickup_date') and str(item['pickup_date']).strip():
+                    st.write(f"📅 **Ready by:** {item['pickup_date']}")
+                
+                # Description
+                description = str(item.get('description', 'Contact for more details'))
+                if len(description) > 120:
+                    st.write(f"💬 {description[:120]}...")
+                else:
+                    st.write(f"💬 {description}")
+                
+                # View button
+                if st.button(f"View Details", key=f"view_{item['id']}", use_container_width=True, type="primary"):
+                    navigate_to_item_details(item['id'])
 
 # Enhanced item details page (with fixed divs)
 def show_item_details():
