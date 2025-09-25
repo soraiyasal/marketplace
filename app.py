@@ -1032,38 +1032,25 @@ def get_categories():
 
 # Mobile-friendly home page
 def show_home_page():
-    # Hero section
-    st.markdown("""
-    <div class="hero-header">
-        <div class="hero-title">♻️ Free Items Marketplace</div>
-        <div class="hero-subtitle">Transform waste into opportunity. Find quality items from hotels, absolutely free.</div>
-        <a href="https://forms.gle/TNvTKqgkoayQRudKA" target="_blank" class="give-away-btn">
-            🎁 Have something to give away?
-        </a>
-    </div>
-    """, unsafe_allow_html=True)
+    # Hero section - using pure Streamlit
+    st.markdown("# ♻️ Free Items Marketplace")
+    st.markdown("*Transform waste into opportunity. Find quality items from hotels, absolutely free.*")
+    st.link_button("🎁 Have something to give away?", "https://forms.gle/TNvTKqgkoayQRudKA")
     
     # Stats
     total_items = len(st.session_state.items_data)
     total_quantity = st.session_state.items_data['quantity'].sum() if 'quantity' in st.session_state.items_data.columns else 0
     categories_count = len(get_categories()) - 1
     
-    st.markdown(f"""
-    <div class="stats-container">
-        <div class="stat-card">
-            <div class="stat-number">{total_items}</div>
-            <div class="stat-label">Items</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-number">{int(total_quantity)}</div>
-            <div class="stat-label">Total Qty</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-number">{categories_count}</div>
-            <div class="stat-label">Categories</div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    # Stats using pure Streamlit
+    st.markdown("---")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("Items", total_items)
+    with col2:
+        st.metric("Total Qty", int(total_quantity))
+    with col3:
+        st.metric("Categories", categories_count)
     
     # Search and refresh
     col1, col2 = st.columns([3, 1])
@@ -1100,40 +1087,44 @@ def show_home_page():
         filtered_data = filtered_data[mask]
     
     # Display items count
-    st.markdown(f"**🛍️ Available Items ({len(filtered_data)})**")
+    st.subheader(f"🛍️ Available Items ({len(filtered_data)})")
     
     if len(filtered_data) == 0:
         st.info("🔍 No items found. Try a different category or search term.")
     else:
-        # Display items in mobile-friendly cards
+        # Display items using pure Streamlit components
         for idx, item in filtered_data.iterrows():
             emoji = get_category_emoji(item['category'])
             
-            # Create item card
-            st.markdown(f"""
-            <div class="item-card">
-                <div class="item-image {'no-photo' if not (item.get('image_url') and str(item['image_url']).strip()) else ''}">
-                    {'📸' if item.get('image_url') and str(item['image_url']).strip() else '📷'}
-                    {f'<a href="{item["image_url"]}" target="_blank" class="photo-btn">View Photo</a>' if item.get('image_url') and str(item['image_url']).strip() else ''}
-                </div>
-                <div class="item-content">
-                    <div class="item-category">{emoji} {item['category']}</div>
-                    <div class="item-title">{item['name']}</div>
-                    <div class="quantity-badge">{int(item['quantity'])} Available</div>
-                    
-                    <div class="item-detail">📍 {item['location']}</div>
-                    {f'<div class="item-detail">📅 Ready by: {item["pickup_date"]}</div>' if item.get('pickup_date') and str(item['pickup_date']).strip() else ''}
-                    
-                    <div class="item-description">
-                        {str(item.get('description', 'Contact for more details'))[:120]}{'...' if len(str(item.get('description', ''))) > 120 else ''}
-                    </div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            # View button
-            if st.button(f"View {item['name']}", key=f"view_{item['id']}", use_container_width=True):
-                navigate_to_item_details(item['id'])
+            # Create container for each item
+            with st.container():
+                st.markdown("---")
+                
+                # Item header
+                col1, col2 = st.columns([3, 1])
+                with col1:
+                    st.markdown(f"**{emoji} {item['name']}**")
+                    st.caption(f"{item['category']} • {int(item['quantity'])} Available")
+                
+                with col2:
+                    if item.get('image_url') and str(item['image_url']).strip():
+                        st.link_button("📸 Photo", item['image_url'])
+                
+                # Location and pickup info
+                st.write(f"📍 **Location:** {item['location']}")
+                if item.get('pickup_date') and str(item['pickup_date']).strip():
+                    st.write(f"📅 **Ready by:** {item['pickup_date']}")
+                
+                # Description
+                description = str(item.get('description', 'Contact for more details'))
+                if len(description) > 120:
+                    st.write(f"💬 {description[:120]}...")
+                else:
+                    st.write(f"💬 {description}")
+                
+                # View button
+                if st.button(f"View Details for {item['name']}", key=f"view_{item['id']}", use_container_width=True, type="primary"):
+                    navigate_to_item_details(item['id'])
 
 # Mobile-friendly item details page
 def show_item_details():
@@ -1144,29 +1135,16 @@ def show_item_details():
         if st.button("← Back to Marketplace", key="back_button", type="primary"):
             back_to_home()
         
-        # Item header
-        emoji = get_category_emoji(item['category'])
-        st.markdown(f"""
-        <div class="hero-header">
-            <div class="hero-title">{emoji} {item['name']}</div>
-            <div class="hero-subtitle">{item['location']} • {int(item['quantity'])} Available</div>
-        </div>
-        """, unsafe_allow_html=True)
+        # Item header - using pure Streamlit
+        st.markdown(f"# {emoji} {item['name']}")
+        st.markdown(f"**{item['location']} • {int(item['quantity'])} Available**")
         
-        # Image section
+        # Image section - pure Streamlit
         if item.get('image_url') and str(item['image_url']).strip():
-            st.markdown(f"""
-            <div class="item-image" style="height: 200px; margin-bottom: 1rem;">
-                📸
-                <a href="{item['image_url']}" target="_blank" class="photo-btn">View Full Photo</a>
-            </div>
-            """, unsafe_allow_html=True)
+            st.info("📸 Photo available")
+            st.link_button("View Full Photo", item['image_url'])
         else:
-            st.markdown("""
-            <div class="item-image no-photo" style="height: 200px; margin-bottom: 1rem;">
-                📷
-            </div>
-            """, unsafe_allow_html=True)
+            st.info("📷 No photo available")
         
         # Item details
         st.markdown("**📋 Item Details**")
@@ -1183,32 +1161,25 @@ def show_item_details():
             if item.get('pickup_date') and str(item['pickup_date']).strip():
                 st.write(f"📅 **Ready by:** {item['pickup_date']}")
         
-        # Description
-        st.markdown("**📝 Description**")
-        st.markdown(f"""
-        <div class="item-description">
-            {item.get('description', 'Contact for more details')}
-        </div>
-        """, unsafe_allow_html=True)
+        # Description using pure Streamlit
+        st.subheader("📝 Description")
+        st.write(item.get('description', 'Contact for more details'))
         
-        # Contact section
+        # Contact section using pure Streamlit
+        st.subheader("📞 Contact Information")
+        
         email_subject = f"Interested in: {item['name']} (Free Hotel Marketplace)"
         email_body = f"Hello,\n\nI am interested in the {item['name']} you have listed on the Free Hotel Marketplace.\n\nPlease let me know about availability and pickup arrangements.\n\nThank you!"
         email_link = create_email_link(item['contact_email'], email_subject, email_body)
         
-        st.markdown(f"""
-        <div class="contact-section">
-            <h4>📞 Ready to pick this up?</h4>
-            <div style="margin: 1rem 0;">
-                <strong>📧 Email:</strong> {item['contact_email']}<br>
-                {f'<strong>📱 Phone:</strong> {item["contact_phone"]}<br>' if item.get('contact_phone') else ''}
-            </div>
-            <a href="{email_link}" class="contact-btn">✉️ Contact for Pickup</a>
-        </div>
-        """, unsafe_allow_html=True)
+        st.write(f"📧 **Email:** {item['contact_email']}")
+        if item.get('contact_phone'):
+            st.write(f"📱 **Phone:** {item['contact_phone']}")
+            
+        st.link_button("✉️ Contact for Pickup", email_link)
         
-        # Related items
-        st.markdown("**🔍 More from this category**")
+        # Related items using pure Streamlit
+        st.subheader("🔍 More from this category")
         related_items = st.session_state.items_data[
             (st.session_state.items_data['category'] == item['category']) & 
             (st.session_state.items_data['id'] != item['id'])
@@ -1220,13 +1191,14 @@ def show_item_details():
                 col1, col2 = st.columns([3, 1])
                 with col1:
                     st.write(f"{related_emoji} **{related_item['name']}**")
-                    st.write(f"📍 {related_item['location']} • {int(related_item['quantity'])} available")
+                    st.caption(f"📍 {related_item['location']} • {int(related_item['quantity'])} available")
                 with col2:
                     if st.button("View", key=f"related_{related_item['id']}", use_container_width=True):
                         navigate_to_item_details(related_item['id'])
         else:
             st.info("No other items in this category.")
             
+        # Timestamp
         if item.get('timestamp'):
             st.caption(f"🕒 Listed on: {item['timestamp']}")
     
@@ -1240,11 +1212,7 @@ if st.session_state.current_page == 'home':
 elif st.session_state.current_page == 'item_details':
     show_item_details()
 
-# Simple footer
+# Simple footer using pure Streamlit
 st.markdown("---")
-st.markdown("""
-<div style="text-align: center; color: #666; padding: 1rem;">
-    ♻️ <strong>4C Group - Free Items Marketplace</strong><br>
-    <small>© 2025 • Transforming waste into opportunity</small>
-</div>
-""", unsafe_allow_html=True)
+st.markdown("**♻️ 4C Group - Free Items Marketplace**")
+st.caption("© 2025 • Transforming waste into opportunity")
