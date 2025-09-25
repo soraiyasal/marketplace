@@ -657,7 +657,7 @@ st.markdown("""
     }
     
     .item-content {
-        padding: 0rem;
+        padding: 1rem;
     }
     
     .item-title {
