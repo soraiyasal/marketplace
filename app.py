@@ -554,7 +554,7 @@ import re
 
 # Set page configuration
 st.set_page_config(
-    page_title="4C Group - Free Items Marketplace",
+    page_title="4C Group - Marketplace",
     page_icon="♻️",
     layout="centered",
     initial_sidebar_state="collapsed"
@@ -574,7 +574,7 @@ category_emojis = {
 def get_category_emoji(category):
     return category_emojis.get(category, "📦")
 
-# Mobile-first CSS
+# Steve Jobs inspired CSS (keeping the beautiful design)
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -611,25 +611,6 @@ st.markdown("""
         margin-bottom: 1.5rem;
     }
     
-    .give-away-btn {
-        background: linear-gradient(45deg, #ff6b6b, #ee5a24);
-        color: white;
-        border: none;
-        padding: 0.8rem 1.5rem;
-        border-radius: 25px;
-        font-weight: 600;
-        text-decoration: none;
-        display: inline-block;
-        transition: transform 0.2s ease;
-        box-shadow: 0 5px 15px rgba(255, 107, 107, 0.3);
-    }
-    
-    .give-away-btn:hover {
-        transform: translateY(-2px);
-        text-decoration: none;
-        color: white;
-    }
-    
     .stats-container {
         display: flex;
         gap: 1rem;
@@ -661,21 +642,6 @@ st.markdown("""
         margin-top: 0.2rem;
     }
     
-    .search-box {
-        background: white;
-        border-radius: 10px;
-        padding: 1rem;
-        margin: 1rem 0;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-    }
-    
-    .category-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-        gap: 0.8rem;
-        margin: 1rem 0;
-    }
-    
     .item-card {
         background: white;
         border-radius: 12px;
@@ -687,36 +653,7 @@ st.markdown("""
     
     .item-card:hover {
         transform: translateY(-2px);
-    }
-    
-    .item-image {
-        height: 150px;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-size: 2rem;
-        position: relative;
-    }
-    
-    .item-image.no-photo {
-        background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
-        color: #8b4513;
-    }
-    
-    .photo-btn {
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        background: rgba(255,255,255,0.9);
-        color: #333;
-        border: none;
-        padding: 0.4rem 0.8rem;
-        border-radius: 15px;
-        font-size: 0.7rem;
-        font-weight: 500;
-        text-decoration: none;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.12);
     }
     
     .item-content {
@@ -741,23 +678,6 @@ st.markdown("""
         margin-bottom: 0.8rem;
     }
     
-    .item-detail {
-        font-size: 0.85rem;
-        color: #5a6c7d;
-        margin-bottom: 0.3rem;
-    }
-    
-    .item-description {
-        background: #f8fafc;
-        padding: 0.8rem;
-        border-radius: 8px;
-        font-size: 0.85rem;
-        color: #4a5568;
-        line-height: 1.4;
-        margin: 0.8rem 0;
-        border-left: 3px solid #667eea;
-    }
-    
     .quantity-badge {
         background: linear-gradient(45deg, #4ecdc4, #44a08d);
         color: white;
@@ -766,7 +686,18 @@ st.markdown("""
         font-size: 0.7rem;
         font-weight: 600;
         display: inline-block;
-        margin-bottom: 0.8rem;
+        margin-left: 0.5rem;
+    }
+    
+    .item-description-box {
+        background: #f8fafc;
+        padding: 0.8rem;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        color: #4a5568;
+        line-height: 1.4;
+        margin: 0.8rem 0;
+        border-left: 3px solid #667eea;
     }
     
     .contact-section {
@@ -778,36 +709,27 @@ st.markdown("""
         text-align: center;
     }
     
-    .contact-btn {
-        background: white;
-        color: #667eea;
-        border: none;
-        padding: 0.8rem 1.5rem;
-        border-radius: 25px;
-        font-weight: 600;
-        text-decoration: none;
-        display: inline-block;
-        margin-top: 1rem;
-        transition: transform 0.2s ease;
-    }
-    
-    .contact-btn:hover {
-        transform: translateY(-2px);
-        text-decoration: none;
-        color: #667eea;
-    }
-    
-    .back-btn {
-        background: linear-gradient(45deg, #74b9ff, #0984e3);
+    .photo-available {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
-        border: none;
-        padding: 0.6rem 1.2rem;
-        border-radius: 20px;
-        font-weight: 600;
-        margin-bottom: 1rem;
+        padding: 1rem;
+        border-radius: 10px;
+        text-align: center;
+        margin: 1rem 0;
+        font-size: 1.2rem;
     }
     
-    /* Responsive adjustments */
+    .photo-not-available {
+        background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+        color: #8b4513;
+        padding: 1rem;
+        border-radius: 10px;
+        text-align: center;
+        margin: 1rem 0;
+        font-size: 1.2rem;
+    }
+    
+    /* Mobile responsive */
     @media (max-width: 768px) {
         .hero-title {
             font-size: 1.8rem;
@@ -815,11 +737,6 @@ st.markdown("""
         
         .hero-subtitle {
             font-size: 0.9rem;
-        }
-        
-        .category-grid {
-            grid-template-columns: repeat(3, 1fr);
-            gap: 0.5rem;
         }
         
         .stats-container {
@@ -1030,27 +947,40 @@ def get_categories():
         categories.extend(sorted(unique_categories))
     return categories
 
-# Mobile-friendly home page
+# Enhanced home page (with fixed divs)
 def show_home_page():
-    # Hero section - using pure Streamlit
-    st.markdown("# ♻️ Free Items Marketplace")
-    st.markdown("*Transform waste into opportunity. Find quality items from hotels, absolutely free.*")
-    st.link_button("🎁 Have something to give away?", "https://forms.gle/TNvTKqgkoayQRudKA")
+    # Hero section - keeping the beautiful design
+    st.markdown("""
+    <div class="hero-header">
+        <div class="hero-title">♻️Marketplace</div>
+        <div class="hero-subtitle">Transform waste into opportunity. Find quality items from hotels, absolutely free.</div>
+    </div>
+    """, unsafe_allow_html=True)
     
-    # Stats
+    # Give away button using pure Streamlit
+    st.link_button("🎁 Have something to give away?", "https://forms.gle/TNvTKqgkoayQRudKA", use_container_width=True)
+    
+    # Stats - keeping beautiful design
     total_items = len(st.session_state.items_data)
     total_quantity = st.session_state.items_data['quantity'].sum() if 'quantity' in st.session_state.items_data.columns else 0
     categories_count = len(get_categories()) - 1
     
-    # Stats using pure Streamlit
-    st.markdown("---")
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.metric("Items", total_items)
-    with col2:
-        st.metric("Total Qty", int(total_quantity))
-    with col3:
-        st.metric("Categories", categories_count)
+    st.markdown(f"""
+    <div class="stats-container">
+        <div class="stat-card">
+            <div class="stat-number">{total_items}</div>
+            <div class="stat-label">Items</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{int(total_quantity)}</div>
+            <div class="stat-label">Total Qty</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{categories_count}</div>
+            <div class="stat-label">Categories</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
     
     # Search and refresh
     col1, col2 = st.columns([3, 1])
@@ -1070,7 +1000,7 @@ def show_home_page():
         with cols[i % 3]:
             button_type = "primary" if category == st.session_state.selected_category else "secondary"
             emoji = "🌟" if category == "All" else get_category_emoji(category)
-            if st.button(f"{emoji}", key=f"cat_{category}", type=button_type, use_container_width=True, help=category):
+            if st.button(f"{emoji} {category}", key=f"cat_{category}", type=button_type, use_container_width=True):
                 set_category(category)
     
     # Filter data
@@ -1092,41 +1022,43 @@ def show_home_page():
     if len(filtered_data) == 0:
         st.info("🔍 No items found. Try a different category or search term.")
     else:
-        # Display items using pure Streamlit components
+        # Display items using styled cards but with Streamlit content
         for idx, item in filtered_data.iterrows():
             emoji = get_category_emoji(item['category'])
             
-            # Create container for each item
-            with st.container():
-                st.markdown("---")
-                
-                # Item header
-                col1, col2 = st.columns([3, 1])
-                with col1:
-                    st.markdown(f"**{emoji} {item['name']}**")
-                    st.caption(f"{item['category']} • {int(item['quantity'])} Available")
-                
-                with col2:
-                    if item.get('image_url') and str(item['image_url']).strip():
-                        st.link_button("📸 Photo", item['image_url'])
-                
-                # Location and pickup info
-                st.write(f"📍 **Location:** {item['location']}")
-                if item.get('pickup_date') and str(item['pickup_date']).strip():
-                    st.write(f"📅 **Ready by:** {item['pickup_date']}")
-                
-                # Description
-                description = str(item.get('description', 'Contact for more details'))
-                if len(description) > 120:
-                    st.write(f"💬 {description[:120]}...")
-                else:
-                    st.write(f"💬 {description}")
-                
-                # View button
-                if st.button(f"View Details for {item['name']}", key=f"view_{item['id']}", use_container_width=True, type="primary"):
-                    navigate_to_item_details(item['id'])
+            # Create styled item card
+            st.markdown('<div class="item-card"><div class="item-content">', unsafe_allow_html=True)
+            
+            # Item header with Streamlit components
+            col1, col2 = st.columns([3, 1])
+            with col1:
+                st.markdown(f'<div class="item-category">{emoji} {item["category"]}</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="item-title">{item["name"]}</div>', unsafe_allow_html=True)
+                st.markdown(f'<span class="quantity-badge">{int(item["quantity"])} Available</span>', unsafe_allow_html=True)
+            
+            with col2:
+                if item.get('image_url') and str(item['image_url']).strip():
+                    st.link_button("📸", item['image_url'])
+            
+            # Location and pickup - using Streamlit write
+            st.write(f"📍 **Location:** {item['location']}")
+            if item.get('pickup_date') and str(item['pickup_date']).strip():
+                st.write(f"📅 **Ready by:** {item['pickup_date']}")
+            
+            # Description in styled box
+            description = str(item.get('description', 'Contact for more details'))
+            if len(description) > 120:
+                description = description[:120] + "..."
+            st.markdown(f'<div class="item-description-box">{description}</div>', unsafe_allow_html=True)
+            
+            # Close the card div
+            st.markdown('</div></div>', unsafe_allow_html=True)
+            
+            # View button
+            if st.button(f"View Details for {item['name']}", key=f"view_{item['id']}", use_container_width=True, type="primary"):
+                navigate_to_item_details(item['id'])
 
-# Mobile-friendly item details page
+# Enhanced item details page (with fixed divs)
 def show_item_details():
     try:
         item = st.session_state.items_data[st.session_state.items_data['id'] == st.session_state.selected_item_id].iloc[0]
@@ -1135,19 +1067,24 @@ def show_item_details():
         if st.button("← Back to Marketplace", key="back_button", type="primary"):
             back_to_home()
         
-        # Item header - using pure Streamlit
-        st.markdown(f"# {emoji} {item['name']}")
-        st.markdown(f"**{item['location']} • {int(item['quantity'])} Available**")
+        # Item header - keeping beautiful design
+        emoji = get_category_emoji(item['category'])
+        st.markdown(f"""
+        <div class="hero-header">
+            <div class="hero-title">{emoji} {item['name']}</div>
+            <div class="hero-subtitle">{item['location']} • {int(item['quantity'])} Available</div>
+        </div>
+        """, unsafe_allow_html=True)
         
-        # Image section - pure Streamlit
+        # Image section with styling
         if item.get('image_url') and str(item['image_url']).strip():
-            st.info("📸 Photo available")
-            st.link_button("View Full Photo", item['image_url'])
+            st.markdown('<div class="photo-available">📸 Photo Available</div>', unsafe_allow_html=True)
+            st.link_button("View Full Photo", item['image_url'], use_container_width=True)
         else:
-            st.info("📷 No photo available")
+            st.markdown('<div class="photo-not-available">📷 No Photo Available</div>', unsafe_allow_html=True)
         
-        # Item details
-        st.markdown("**📋 Item Details**")
+        # Item details using Streamlit components
+        st.subheader("📋 Item Details")
         
         col1, col2 = st.columns(2)
         with col1:
@@ -1161,24 +1098,26 @@ def show_item_details():
             if item.get('pickup_date') and str(item['pickup_date']).strip():
                 st.write(f"📅 **Ready by:** {item['pickup_date']}")
         
-        # Description using pure Streamlit
+        # Description with styled box
         st.subheader("📝 Description")
-        st.write(item.get('description', 'Contact for more details'))
+        st.markdown(f'<div class="item-description-box">{item.get("description", "Contact for more details")}</div>', unsafe_allow_html=True)
         
-        # Contact section using pure Streamlit
-        st.subheader("📞 Contact Information")
-        
+        # Contact section with beautiful styling
         email_subject = f"Interested in: {item['name']} (Free Hotel Marketplace)"
         email_body = f"Hello,\n\nI am interested in the {item['name']} you have listed on the Free Hotel Marketplace.\n\nPlease let me know about availability and pickup arrangements.\n\nThank you!"
         email_link = create_email_link(item['contact_email'], email_subject, email_body)
         
-        st.write(f"📧 **Email:** {item['contact_email']}")
-        if item.get('contact_phone'):
-            st.write(f"📱 **Phone:** {item['contact_phone']}")
-            
-        st.link_button("✉️ Contact for Pickup", email_link)
+        st.markdown(f"""
+        <div class="contact-section">
+            <h4>📞 Ready to pick this up?</h4>
+            <p><strong>📧 Email:</strong> {item['contact_email']}</p>
+            {f'<p><strong>📱 Phone:</strong> {item["contact_phone"]}</p>' if item.get('contact_phone') else ''}
+        </div>
+        """, unsafe_allow_html=True)
         
-        # Related items using pure Streamlit
+        st.link_button("✉️ Contact for Pickup", email_link, use_container_width=True)
+        
+        # Related items using Streamlit
         st.subheader("🔍 More from this category")
         related_items = st.session_state.items_data[
             (st.session_state.items_data['category'] == item['category']) & 
@@ -1212,7 +1151,7 @@ if st.session_state.current_page == 'home':
 elif st.session_state.current_page == 'item_details':
     show_item_details()
 
-# Simple footer using pure Streamlit
+# Beautiful footer
 st.markdown("---")
-st.markdown("**♻️ 4C Group - Free Items Marketplace**")
+st.markdown("**♻️ 4C Group - Marketplace**")
 st.caption("© 2025 • Transforming waste into opportunity")
