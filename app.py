@@ -1029,8 +1029,8 @@ def show_home_page():
         for idx, item in filtered_data.iterrows():
             emoji = get_category_emoji(item['category'])
             
-            # Create a container for each item (this creates a proper box)
-            with st.container(border=True):
+            # Create a container for each item (old style with separator)
+            with st.container():
                 # Item header
                 col1, col2 = st.columns([3, 1])
                 with col1:
@@ -1056,6 +1056,8 @@ def show_home_page():
                 # View button
                 if st.button(f"View Details", key=f"view_{item['id']}", use_container_width=True, type="primary"):
                     navigate_to_item_details(item['id'])
+                                # Add separator line like the old version
+                st.markdown("---")
 
 # Enhanced item details page (with fixed divs)
 def show_item_details():
