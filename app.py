@@ -1180,6 +1180,10 @@ category_emojis = {
     "Crockery": "🍽️",
     "Decor": "🎨",
     "Fixtures": "💡",
+    "Bag/Suitcase": "🎒",
+    "Water Bottle": "💧",
+    "Clothing":"👗",
+    "Entertainment": "🎲",
     "Others": "📦"
 }
 
