@@ -1224,60 +1224,14 @@ def show_reservation_dialog(item_id):
                     st.success("🎉 " + message)
                     st.balloons()
                     
-                    # Get item contact details for email reminder
-                    item_contact_email = item['contact_email']
-                    item_contact_phone = item.get('contact_phone', '')
-                    
-                    st.markdown("---")
-                    st.warning("⚠️ **Important - Final Step Required!**")
-                    st.markdown(f"""
-                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-                                color: white; padding: 1.5rem; border-radius: 12px; margin: 1rem 0;">
-                        <h4 style="margin: 0 0 1rem 0;">📧 Please Email to Confirm Your Reservation</h4>
-                        <p style="margin: 0.5rem 0;">Your reservation has been recorded, but you MUST email the hotel to confirm pickup arrangements:</p>
-                        <p style="margin: 1rem 0 0.5rem 0; font-size: 1.1rem;"><strong>📧 Email:</strong> {item_contact_email}</p>
-                        {f'<p style="margin: 0.5rem 0;"><strong>📱 Phone:</strong> {item_contact_phone}</p>' if item_contact_phone else ''}
-                        <p style="margin: 1rem 0 0 0; font-size: 0.9rem; opacity: 0.9;">
-                            <strong>What to include in your email:</strong><br>
-                            • Your name: {name}<br>
-                            • Item reserved: {item['name']}<br>
-                            • Quantity: {quantity}<br>
-                            • Pickup date: {pickup_date.strftime("%d/%m/%Y")}
-                        </p>
-                    </div>
-                    """, unsafe_allow_html=True)
-                    
-                    # Create pre-filled email link
-                    email_subject = f"Reservation Confirmation: {item['name']}"
-                    email_body = f"""Hello,
-
-I have just reserved the following item through the marketplace:
-
-Item: {item['name']}
-Quantity: {quantity}
-My Name: {name}
-My Email: {email}
-Planned Pickup Date: {pickup_date.strftime("%d/%m/%Y")}
-
-Please confirm this reservation and let me know the pickup arrangements.
-
-Thank you!"""
-                    email_link = create_email_link(item_contact_email, email_subject, email_body)
-                    
-                    st.link_button("✉️ Click Here to Send Confirmation Email Now", 
-                                  email_link, 
-                                  use_container_width=True,
-                                  type="primary")
-                    
-                    st.info("💡 After sending the email, you can close this window.")
-                    
                     # Refresh data
                     st.cache_data.clear()
                     st.session_state.items_data = load_data()
                     
-                    # Don't auto-close so they can see the reminder and click email
-                    if st.button("✅ I've Sent the Email - Close Window", use_container_width=True):
-                        st.rerun()
+                    # Wait a moment then close
+                    import time
+                    time.sleep(2)
+                    st.rerun()
                 else:
                     st.error(f"❌ {message}")
         
