@@ -1198,6 +1198,10 @@ def show_reservation_dialog(item_id):
                         'contact_phone': item.get('contact_phone', '')
                     }
                     
+                    # Make sure we're on the item details page for the email reminder
+                    st.session_state.current_page = 'item_details'
+                    st.session_state.selected_item_id = item_id
+                    
                     st.success("🎉 " + message)
                     st.balloons()
                     
@@ -1396,12 +1400,12 @@ def show_home_page():
 
 # Enhanced item details page
 def show_item_details():
-    # Show email reminder popup if user just reserved
-    if st.session_state.just_reserved and st.session_state.reserved_item_details:
-        show_email_reminder()
-    
     try:
         item = st.session_state.items_data[st.session_state.items_data['id'] == st.session_state.selected_item_id].iloc[0]
+        
+        # Show email reminder popup if user just reserved
+        if st.session_state.just_reserved and st.session_state.reserved_item_details:
+            show_email_reminder()
         
         if st.button("← Back to Marketplace", key="back_button", type="primary"):
             back_to_home()
