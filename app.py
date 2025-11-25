@@ -959,11 +959,6 @@ def load_data():
         
         df['remaining_quantity'] = df['quantity'] - df['reserved_quantity']
         df['remaining_quantity'] = df['remaining_quantity'].apply(lambda x: max(0, x))
-        
-        # Remove items with 0 remaining quantity (fully reserved or no quantity)
-        # Keep them in data but they won't be reservable
-        # If you want to completely hide them, uncomment the line below:
-        # df = df[df['remaining_quantity'] > 0]
             
         return df
     except Exception as e:
@@ -989,40 +984,6 @@ def create_dummy_data():
             "contact_email": "facilities@grandhotel.com",
             "contact_phone": "407-555-0123",
             "pickup_date": "2025-03-30"
-        },
-        {
-            "id": 2,
-            "name": "Bedside Lamps",
-            "category": "Fixtures",
-            "subcategory": "Lighting",
-            "hotel": "Disney Land",
-            "location": "Disney Land",
-            "quantity": 12,
-            "reserved_quantity": 0,
-            "remaining_quantity": 12,
-            "condition": "Like New",
-            "description": "Modern bedside lamps with LED bulbs included. Contemporary design with touch controls. Originally $80 each, now free! Perfect for bedrooms or living rooms.",
-            "image_url": "",
-            "contact_email": "inventory@seasideresort.com",
-            "contact_phone": "305-555-9876",
-            "pickup_date": "2025-04-15"
-        },
-        {
-            "id": 3,
-            "name": "Coffee Tables",
-            "category": "Furniture",
-            "subcategory": "Tables",
-            "hotel": "Disney Land",
-            "location": "Disney Land",
-            "quantity": 3,
-            "reserved_quantity": 0,
-            "remaining_quantity": 3,
-            "condition": "Good",
-            "description": "Solid wood coffee tables with rustic finish. Minor scratches on surface but structurally sound. Great for living rooms or offices. Retail value $200 each.",
-            "image_url": "",
-            "contact_email": "property@mountainlodge.com",
-            "contact_phone": "303-555-4567",
-            "pickup_date": "2025-03-25"
         }
     ]
     return pd.DataFrame(items)
@@ -1141,6 +1102,10 @@ if 'selected_item_id' not in st.session_state:
     st.session_state.selected_item_id = None
 if 'selected_category' not in st.session_state:
     st.session_state.selected_category = 'All'
+if 'just_reserved' not in st.session_state:
+    st.session_state.just_reserved = False
+if 'reserved_item_details' not in st.session_state:
+    st.session_state.reserved_item_details = None
 
 # Navigation functions
 def navigate_to_item_details(item_id):
@@ -1162,7 +1127,7 @@ def get_categories():
         categories.extend(sorted(unique_categories))
     return categories
 
-# Reservation Dialog using st.dialog
+# Reservation Dialog
 @st.dialog("🎯 Reserve This Item")
 def show_reservation_dialog(item_id):
     item = st.session_state.items_data[st.session_state.items_data['id'] == item_id].iloc[0]
@@ -1221,6 +1186,18 @@ def show_reservation_dialog(item_id):
                 )
                 
                 if success:
+                    # Store reservation details for the reminder
+                    st.session_state.just_reserved = True
+                    st.session_state.reserved_item_details = {
+                        'name': name,
+                        'email': email,
+                        'quantity': quantity,
+                        'pickup_date': pickup_date.strftime("%d/%m/%Y"),
+                        'item_name': item['name'],
+                        'contact_email': item['contact_email'],
+                        'contact_phone': item.get('contact_phone', '')
+                    }
+                    
                     st.success("🎉 " + message)
                     st.balloons()
                     
@@ -1237,6 +1214,64 @@ def show_reservation_dialog(item_id):
         
         if cancel:
             st.rerun()
+
+# Email Reminder Dialog - shown after reservation
+@st.dialog("⚠️ IMPORTANT: Confirm Your Reservation")
+def show_email_reminder():
+    details = st.session_state.reserved_item_details
+    
+    st.markdown("""
+    ### 📧 You MUST Email the Hotel Now!
+    
+    Your reservation has been recorded in the system, but it's **NOT CONFIRMED** until you email the hotel.
+    """)
+    
+    st.markdown(f"""
+    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                color: white; padding: 1.5rem; border-radius: 12px; margin: 1rem 0;">
+        <h4 style="margin: 0 0 1rem 0; color: white;">📞 Contact Details</h4>
+        <p style="margin: 0.5rem 0; font-size: 1.1rem;"><strong>📧 Email:</strong> {details['contact_email']}</p>
+        {f"<p style='margin: 0.5rem 0;'><strong>📱 Phone:</strong> {details['contact_phone']}</p>" if details['contact_phone'] else ''}
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown(f"""
+    **Include these details in your email:**
+    - Your name: {details['name']}
+    - Item: {details['item_name']}
+    - Quantity: {details['quantity']}
+    - Pickup date: {details['pickup_date']}
+    """)
+    
+    # Create pre-filled email link
+    email_subject = f"Reservation Confirmation: {details['item_name']}"
+    email_body = f"""Hello,
+
+I have just reserved the following item through the marketplace:
+
+Item: {details['item_name']}
+Quantity: {details['quantity']}
+My Name: {details['name']}
+My Email: {details['email']}
+Planned Pickup Date: {details['pickup_date']}
+
+Please confirm this reservation and let me know the pickup arrangements.
+
+Thank you!"""
+    
+    email_link = create_email_link(details['contact_email'], email_subject, email_body)
+    
+    st.link_button("✉️ Click Here to Send Email Now", 
+                  email_link, 
+                  use_container_width=True,
+                  type="primary")
+    
+    st.warning("💡 Please send the email before closing this window!")
+    
+    if st.button("✅ I've Sent the Email", use_container_width=True):
+        st.session_state.just_reserved = False
+        st.session_state.reserved_item_details = None
+        st.rerun()
 
 # Enhanced home page
 def show_home_page():
@@ -1304,9 +1339,6 @@ def show_home_page():
         )
         filtered_data = filtered_data[mask]
     
-    # Optional: Hide fully reserved items (uncomment the line below to enable)
-    # filtered_data = filtered_data[filtered_data['remaining_quantity'] > 0]
-    
     st.subheader(f"🛍️ Available Items ({len(filtered_data)})")
     
     if len(filtered_data) == 0:
@@ -1362,8 +1394,12 @@ def show_home_page():
                 
                 st.markdown("---")
 
-# Enhanced item details page with donation button
+# Enhanced item details page
 def show_item_details():
+    # Show email reminder popup if user just reserved
+    if st.session_state.just_reserved and st.session_state.reserved_item_details:
+        show_email_reminder()
+    
     try:
         item = st.session_state.items_data[st.session_state.items_data['id'] == st.session_state.selected_item_id].iloc[0]
         
@@ -1463,13 +1499,14 @@ def show_item_details():
         
         st.markdown(f"""
         <div class="contact-section">
-            <h4>📞 Ready to pick this up?</h4>
+            <h4>📞 Need More Information?</h4>
             <p><strong>📧 Email:</strong> {item['contact_email']}</p>
             {f'<p><strong>📱 Phone:</strong> {item["contact_phone"]}</p>' if item.get('contact_phone') else ''}
+            <p style="margin-top: 1rem; font-size: 0.9rem; opacity: 0.9;">If you reserved this item, please email to confirm pickup!</p>
         </div>
         """, unsafe_allow_html=True)
         
-        st.link_button("✉️ Contact for Pickup", email_link, use_container_width=True)
+        st.link_button("✉️ Contact for Questions or Confirm Pickup", email_link, use_container_width=True)
         
         # Related items
         st.subheader("🔍 More from this category")
