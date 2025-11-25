@@ -619,7 +619,7 @@ import re
 
 # Set page configuration
 st.set_page_config(
-    page_title="4C Group - Free Items Marketplace",
+    page_title="4C Group - Marketplace",
     page_icon="♻️",
     layout="centered",
     initial_sidebar_state="collapsed"
@@ -632,7 +632,10 @@ category_emojis = {
     "Crockery": "🍽️",
     "Decor": "🎨",
     "Fixtures": "💡",
+    "Bag - Suitcase": "🎒",
     "Water Bottle": "💧",
+    "Clothing":"👗",
+    "Entertainment": "🎲",
     "Accessory": "👓",
     "Others": "📦"
 }
@@ -641,160 +644,238 @@ category_emojis = {
 def get_category_emoji(category):
     return category_emojis.get(category, "📦")
 
-# Custom CSS for better mobile experience
+# Steve Jobs inspired CSS (with added reservation styling)
 st.markdown("""
 <style>
-    /* Hero header styling */
-    .hero-header {
-        background: linear-gradient(135deg, #14289c 0%, #1e3db8 100%);
-        padding: 2rem 1rem;
-        border-radius: 15px;
-        margin-bottom: 2rem;
-        text-align: center;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    }
-    .hero-title {
-        font-size: 2rem;
-        font-weight: bold;
-        color: white;
-        margin-bottom: 0.5rem;
-    }
-    .hero-subtitle {
-        font-size: 1rem;
-        color: rgba(255,255,255,0.9);
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    
+    * {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
     
-    /* Stats container */
-    .stats-container {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 1rem;
-        margin: 1.5rem 0;
+    .main {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        min-height: 100vh;
+        padding: 0.5rem;
     }
+    
+    .hero-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 2rem 1rem;
+        border-radius: 15px;
+        text-align: center;
+        color: white;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+    
+    .hero-title {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+    
+    .hero-subtitle {
+        font-size: 1rem;
+        opacity: 0.9;
+        margin-bottom: 1.5rem;
+    }
+    
+    .stats-container {
+        display: flex;
+        gap: 1rem;
+        margin: 1rem 0;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    
     .stat-card {
         background: white;
         padding: 1rem;
         border-radius: 10px;
         text-align: center;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        min-width: 80px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        flex: 1;
+        max-width: 120px;
     }
+    
     .stat-number {
-        font-size: 1.8rem;
-        font-weight: bold;
-        color: #14289c;
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #667eea;
     }
+    
     .stat-label {
-        font-size: 0.9rem;
+        font-size: 0.8rem;
         color: #666;
-        margin-top: 0.25rem;
+        margin-top: 0.2rem;
     }
     
-    /* Item cards */
     .item-card {
-        border: 1px solid #ddd;
-        border-radius: 10px;
-        padding: 1rem;
-        background-color: white;
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
         margin-bottom: 1rem;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        transition: transform 0.2s ease;
     }
     
-    /* Badges */
-    .reserved-badge {
-        background-color: #ff9800;
+    .item-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+    }
+    
+    .item-content {
+        padding: 1rem;
+    }
+    
+    .item-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 0.5rem;
+    }
+    
+    .item-category {
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        color: white;
+        padding: 0.2rem 0.6rem;
+        border-radius: 12px;
+        font-size: 0.7rem;
+        font-weight: 500;
+        display: inline-block;
+        margin-bottom: 0.8rem;
+    }
+    
+    .quantity-badge {
+        background: linear-gradient(45deg, #4ecdc4, #44a08d);
         color: white;
         padding: 0.3rem 0.6rem;
         border-radius: 15px;
-        font-weight: bold;
-        font-size: 0.8rem;
+        font-size: 0.7rem;
+        font-weight: 600;
+        display: inline-block;
+        margin-left: 0.5rem;
+    }
+    
+    .reserved-badge {
+        background: linear-gradient(45deg, #ff9800, #ff5722);
+        color: white;
+        padding: 0.3rem 0.6rem;
+        border-radius: 15px;
+        font-size: 0.7rem;
+        font-weight: 600;
         display: inline-block;
         margin-left: 0.5rem;
     }
     
     .fully-reserved-badge {
-        background-color: #f44336;
+        background: linear-gradient(45deg, #f44336, #d32f2f);
         color: white;
         padding: 0.3rem 0.6rem;
         border-radius: 15px;
-        font-weight: bold;
-        font-size: 0.8rem;
+        font-size: 0.7rem;
+        font-weight: 600;
         display: inline-block;
         margin-left: 0.5rem;
     }
     
-    .quantity-badge {
-        background-color: #4CAF50;
-        color: white;
-        padding: 0.3rem 0.6rem;
-        border-radius: 15px;
-        font-weight: bold;
-        font-size: 0.8rem;
-        display: inline-block;
-    }
-    
-    /* Photo availability badges */
-    .photo-available {
-        background-color: #4CAF50;
-        color: white;
-        padding: 0.5rem;
-        border-radius: 8px;
-        text-align: center;
-        margin: 1rem 0;
-        font-weight: bold;
-    }
-    .photo-not-available {
-        background-color: #f44336;
-        color: white;
-        padding: 0.5rem;
-        border-radius: 8px;
-        text-align: center;
-        margin: 1rem 0;
-        font-weight: bold;
-    }
-    
-    /* Item description box */
     .item-description-box {
-        background-color: #f5f5f5;
-        padding: 1rem;
+        background: #f8fafc;
+        padding: 0.8rem;
         border-radius: 8px;
-        margin: 1rem 0;
-        border-left: 4px solid #14289c;
+        font-size: 0.85rem;
+        color: #4a5568;
+        line-height: 1.4;
+        margin: 0.8rem 0;
+        border-left: 3px solid #667eea;
     }
     
-    /* Contact section */
     .contact-section {
-        background-color: #e3f2fd;
-        padding: 1rem;
-        border-radius: 8px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1.5rem;
+        border-radius: 12px;
         margin: 1rem 0;
+        text-align: center;
     }
     
-    /* Donation section */
     .donation-section {
-        background-color: #fff3e0;
-        padding: 1rem;
-        border-radius: 8px;
-        margin: 1.5rem 0;
-        border-left: 4px solid #ff9800;
-    }
-    .donation-section h4 {
-        margin-top: 0;
-        color: #e65100;
-    }
-    
-    /* Reservation info box */
-    .reservation-info {
-        background-color: #fff9c4;
-        padding: 1rem;
-        border-radius: 8px;
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+        padding: 1.5rem;
+        border-radius: 12px;
         margin: 1rem 0;
-        border-left: 4px solid #fbc02d;
+        text-align: center;
+        box-shadow: 0 4px 15px rgba(240, 147, 251, 0.3);
     }
     
-    /* Hide Streamlit branding */
+    .donation-section h4 {
+        margin: 0 0 0.5rem 0;
+        font-size: 1.3rem;
+    }
+    
+    .donation-section p {
+        margin: 0.5rem 0;
+        font-size: 0.95rem;
+        opacity: 0.95;
+    }
+    
+    .reservation-info {
+        background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+        color: #8b4513;
+        padding: 1rem;
+        border-radius: 10px;
+        margin: 1rem 0;
+        font-weight: 500;
+    }
+    
+    .photo-available {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1rem;
+        border-radius: 10px;
+        text-align: center;
+        margin: 1rem 0;
+        font-size: 1.2rem;
+    }
+    
+    .photo-not-available {
+        background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+        color: #8b4513;
+        padding: 1rem;
+        border-radius: 10px;
+        text-align: center;
+        margin: 1rem 0;
+        font-size: 1.2rem;
+    }
+    
+    /* Mobile responsive */
+    @media (max-width: 768px) {
+        .hero-title {
+            font-size: 1.8rem;
+        }
+        
+        .hero-subtitle {
+            font-size: 0.9rem;
+        }
+        
+        .stats-container {
+            gap: 0.5rem;
+        }
+        
+        .stat-card {
+            min-width: 70px;
+            padding: 0.8rem;
+        }
+    }
+    
+    /* Hide Streamlit elements */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
+    .stDeployButton {display: none;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -819,7 +900,7 @@ def load_data():
         client = connect_to_sheets()
         
         if not client:
-            return pd.DataFrame()
+            return create_dummy_data()
             
         sheet_key = st.secrets["sheet_key"]
         sheet = client.open_by_key(sheet_key)
@@ -827,7 +908,6 @@ def load_data():
         records = worksheet.get_all_records()
         df = pd.DataFrame(records)
         
-        # Rename columns to match our app's expected format
         column_mapping = {
             'Timestamp': 'timestamp',
             'Category': 'category',
@@ -838,6 +918,7 @@ def load_data():
             'Contact Number': 'contact_phone',
             'Upload a photo of the item': 'image_url',
             'Ready to pick up by': 'pickup_date',
+            'Description': 'description',
             'Description (Can include cost)': 'description',
             'Reserved By Name': 'reserved_by_name',
             'Reserved By Email': 'reserved_by_email',
@@ -849,21 +930,26 @@ def load_data():
             if old_name in df.columns:
                 df = df.rename(columns={old_name: new_name})
         
-        # Create unique ID for each item
         if 'id' not in df.columns:
             df['id'] = range(1, len(df) + 1)
             
-        # Set hotel name from location
         if 'hotel' not in df.columns and 'location' in df.columns:
             df['hotel'] = df['location'].apply(lambda x: x.split(',')[0].strip() if isinstance(x, str) and ',' in x else x)
             
-        # Set default condition
         if 'condition' not in df.columns:
             df['condition'] = 'Good'
             
-        # Set default subcategory
         if 'subcategory' not in df.columns and 'category' in df.columns:
             df['subcategory'] = df['category']
+        
+        if 'description' not in df.columns:
+            df['description'] = 'Contact for more details'
+            
+        if 'quantity' in df.columns:
+            df = df[df['quantity'].astype(str).str.strip() != '']
+            df['quantity'] = pd.to_numeric(df['quantity'], errors='coerce').fillna(0)
+            # Remove items with 0 quantity
+            df = df[df['quantity'] > 0]
         
         # Calculate remaining quantity
         if 'reserved_quantity' not in df.columns:
@@ -871,17 +957,75 @@ def load_data():
         else:
             df['reserved_quantity'] = pd.to_numeric(df['reserved_quantity'], errors='coerce').fillna(0)
         
-        df['quantity'] = pd.to_numeric(df['quantity'], errors='coerce').fillna(0)
         df['remaining_quantity'] = df['quantity'] - df['reserved_quantity']
-        
-        # Ensure remaining quantity doesn't go negative
         df['remaining_quantity'] = df['remaining_quantity'].apply(lambda x: max(0, x))
         
+        # Remove items with 0 remaining quantity (fully reserved or no quantity)
+        # Keep them in data but they won't be reservable
+        # If you want to completely hide them, uncomment the line below:
+        # df = df[df['remaining_quantity'] > 0]
+            
         return df
-        
     except Exception as e:
         st.error(f"Error loading data: {e}")
-        return pd.DataFrame()
+        return create_dummy_data()
+
+# Fallback function to create dummy data
+def create_dummy_data():
+    items = [
+        {
+            "id": 1,
+            "name": "Hotel Desk Chair",
+            "category": "Furniture",
+            "subcategory": "Chairs",
+            "hotel": "Grand Hotel",
+            "location": "Orlando, FL",
+            "quantity": 5,
+            "reserved_quantity": 0,
+            "remaining_quantity": 5,
+            "condition": "Good",
+            "description": "Comfortable ergonomic office chairs from our business center. Perfect for home offices. Some minor wear on armrests but fully functional. Originally $150 each.",
+            "image_url": "",
+            "contact_email": "facilities@grandhotel.com",
+            "contact_phone": "407-555-0123",
+            "pickup_date": "2025-03-30"
+        },
+        {
+            "id": 2,
+            "name": "Bedside Lamps",
+            "category": "Fixtures",
+            "subcategory": "Lighting",
+            "hotel": "Disney Land",
+            "location": "Disney Land",
+            "quantity": 12,
+            "reserved_quantity": 0,
+            "remaining_quantity": 12,
+            "condition": "Like New",
+            "description": "Modern bedside lamps with LED bulbs included. Contemporary design with touch controls. Originally $80 each, now free! Perfect for bedrooms or living rooms.",
+            "image_url": "",
+            "contact_email": "inventory@seasideresort.com",
+            "contact_phone": "305-555-9876",
+            "pickup_date": "2025-04-15"
+        },
+        {
+            "id": 3,
+            "name": "Coffee Tables",
+            "category": "Furniture",
+            "subcategory": "Tables",
+            "hotel": "Disney Land",
+            "location": "Disney Land",
+            "quantity": 3,
+            "reserved_quantity": 0,
+            "remaining_quantity": 3,
+            "condition": "Good",
+            "description": "Solid wood coffee tables with rustic finish. Minor scratches on surface but structurally sound. Great for living rooms or offices. Retail value $200 each.",
+            "image_url": "",
+            "contact_email": "property@mountainlodge.com",
+            "contact_phone": "303-555-4567",
+            "pickup_date": "2025-03-25"
+        }
+    ]
+    return pd.DataFrame(items)
 
 # Function to save reservation to Google Sheets
 def save_reservation(item_id, name, email, quantity, pickup_date):
@@ -898,14 +1042,13 @@ def save_reservation(item_id, name, email, quantity, pickup_date):
         all_data = worksheet.get_all_values()
         headers = all_data[0]
         
-        # Find the row index for this item (searching by item ID in the data)
+        # Find the row index for this item
         item_row = None
-        for idx, row in enumerate(all_data[1:], start=2):  # Start from row 2 (after header)
-            # Match based on the item data
+        for idx, row in enumerate(all_data[1:], start=2):
             item_df = st.session_state.items_data[st.session_state.items_data['id'] == item_id]
             if not item_df.empty:
                 item = item_df.iloc[0]
-                # Match by name and location to find correct row
+                # Match by name and location
                 if len(row) > 2 and row[2] == item['name'] and row[3] == item['location']:
                     item_row = idx
                     break
@@ -931,7 +1074,6 @@ def save_reservation(item_id, name, email, quantity, pickup_date):
         
         # If columns don't exist, create them
         if not all([reserved_name_col, reserved_email_col, reserved_qty_col, reserved_pickup_col]):
-            # Add headers if they don't exist
             current_headers = worksheet.row_values(1)
             new_headers = []
             
@@ -946,17 +1088,23 @@ def save_reservation(item_id, name, email, quantity, pickup_date):
             
             if new_headers:
                 start_col = len(current_headers) + 1
-                worksheet.update(f'{chr(64 + start_col)}1', [new_headers])
+                for i, header in enumerate(new_headers):
+                    col_letter = chr(64 + start_col + i)
+                    worksheet.update(f'{col_letter}1', header)
                 
                 # Update column indices
                 reserved_name_col = start_col
-                reserved_email_col = start_col + 1 if len(new_headers) > 1 else start_col
-                reserved_qty_col = start_col + 2 if len(new_headers) > 2 else start_col
-                reserved_pickup_col = start_col + 3 if len(new_headers) > 3 else start_col
+                reserved_email_col = start_col + 1
+                reserved_qty_col = start_col + 2
+                reserved_pickup_col = start_col + 3
         
         # Get current reserved quantity
-        current_reserved = worksheet.cell(item_row, reserved_qty_col).value
-        current_reserved = int(current_reserved) if current_reserved and str(current_reserved).isdigit() else 0
+        try:
+            current_reserved = worksheet.cell(item_row, reserved_qty_col).value
+            current_reserved = int(current_reserved) if current_reserved and str(current_reserved).isdigit() else 0
+        except:
+            current_reserved = 0
+        
         new_reserved = current_reserved + quantity
         
         # Update the cells
@@ -971,48 +1119,42 @@ def save_reservation(item_id, name, email, quantity, pickup_date):
         return False, f"Error saving reservation: {str(e)}"
 
 # Function to create email link
-def create_email_link(email, subject, body):
-    return f"mailto:{email}?subject={urllib.parse.quote(subject)}&body={urllib.parse.quote(body)}"
+def create_email_link(email, subject, body=""):
+    params = {
+        'subject': subject,
+        'body': body
+    }
+    return f"mailto:{email}?{urllib.parse.urlencode(params)}"
 
-# Initialize session state
+# Function to refresh data
+def refresh_data():
+    st.cache_data.clear()
+    st.session_state.items_data = load_data()
+    st.success("✨ Data refreshed successfully!")
+
+# Session state initialization
 if 'items_data' not in st.session_state:
     st.session_state.items_data = load_data()
-
 if 'current_page' not in st.session_state:
     st.session_state.current_page = 'home'
-
+if 'selected_item_id' not in st.session_state:
+    st.session_state.selected_item_id = None
 if 'selected_category' not in st.session_state:
     st.session_state.selected_category = 'All'
 
-if 'selected_item_id' not in st.session_state:
-    st.session_state.selected_item_id = None
-
-if 'show_reservation_form' not in st.session_state:
-    st.session_state.show_reservation_form = False
-
-if 'reservation_item_id' not in st.session_state:
-    st.session_state.reservation_item_id = None
-
 # Navigation functions
 def navigate_to_item_details(item_id):
-    st.session_state.selected_item_id = item_id
     st.session_state.current_page = 'item_details'
-    st.rerun()
+    st.session_state.selected_item_id = item_id
 
 def back_to_home():
     st.session_state.current_page = 'home'
     st.session_state.selected_item_id = None
-    st.rerun()
 
 def set_category(category):
     st.session_state.selected_category = category
-    st.rerun()
 
-def refresh_data():
-    st.cache_data.clear()
-    st.session_state.items_data = load_data()
-    st.rerun()
-
+# Get unique categories from data
 def get_categories():
     categories = ['All']
     if 'items_data' in st.session_state and 'category' in st.session_state.items_data.columns:
@@ -1081,23 +1223,68 @@ def show_reservation_dialog(item_id):
                 if success:
                     st.success("🎉 " + message)
                     st.balloons()
-                    st.info(f"📧 A confirmation will be sent to {email}")
+                    
+                    # Get item contact details for email reminder
+                    item_contact_email = item['contact_email']
+                    item_contact_phone = item.get('contact_phone', '')
+                    
+                    st.markdown("---")
+                    st.warning("⚠️ **Important - Final Step Required!**")
+                    st.markdown(f"""
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                                color: white; padding: 1.5rem; border-radius: 12px; margin: 1rem 0;">
+                        <h4 style="margin: 0 0 1rem 0;">📧 Please Email to Confirm Your Reservation</h4>
+                        <p style="margin: 0.5rem 0;">Your reservation has been recorded, but you MUST email the hotel to confirm pickup arrangements:</p>
+                        <p style="margin: 1rem 0 0.5rem 0; font-size: 1.1rem;"><strong>📧 Email:</strong> {item_contact_email}</p>
+                        {f'<p style="margin: 0.5rem 0;"><strong>📱 Phone:</strong> {item_contact_phone}</p>' if item_contact_phone else ''}
+                        <p style="margin: 1rem 0 0 0; font-size: 0.9rem; opacity: 0.9;">
+                            <strong>What to include in your email:</strong><br>
+                            • Your name: {name}<br>
+                            • Item reserved: {item['name']}<br>
+                            • Quantity: {quantity}<br>
+                            • Pickup date: {pickup_date.strftime("%d/%m/%Y")}
+                        </p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    # Create pre-filled email link
+                    email_subject = f"Reservation Confirmation: {item['name']}"
+                    email_body = f"""Hello,
+
+I have just reserved the following item through the marketplace:
+
+Item: {item['name']}
+Quantity: {quantity}
+My Name: {name}
+My Email: {email}
+Planned Pickup Date: {pickup_date.strftime("%d/%m/%Y")}
+
+Please confirm this reservation and let me know the pickup arrangements.
+
+Thank you!"""
+                    email_link = create_email_link(item_contact_email, email_subject, email_body)
+                    
+                    st.link_button("✉️ Click Here to Send Confirmation Email Now", 
+                                  email_link, 
+                                  use_container_width=True,
+                                  type="primary")
+                    
+                    st.info("💡 After sending the email, you can close this window.")
                     
                     # Refresh data
                     st.cache_data.clear()
                     st.session_state.items_data = load_data()
                     
-                    # Wait a moment then close
-                    import time
-                    time.sleep(2)
-                    st.rerun()
+                    # Don't auto-close so they can see the reminder and click email
+                    if st.button("✅ I've Sent the Email - Close Window", use_container_width=True):
+                        st.rerun()
                 else:
                     st.error(f"❌ {message}")
         
         if cancel:
             st.rerun()
 
-# Enhanced home page with reservation functionality
+# Enhanced home page
 def show_home_page():
     st.markdown("""
     <div class="hero-header">
@@ -1106,13 +1293,10 @@ def show_home_page():
     </div>
     """, unsafe_allow_html=True)
     
-    st.link_button("🎁 Have something to give away? Click here to add your items", 
-                   "https://forms.gle/TNvTKqgkoayQRudKA", 
-                   use_container_width=True)
+    st.link_button("🎁 Have something to give away? Click on this button to add your items", "https://forms.gle/TNvTKqgkoayQRudKA", use_container_width=True)
     
-    # Calculate stats
     total_items = len(st.session_state.items_data)
-    total_available = int(st.session_state.items_data['remaining_quantity'].sum()) if 'remaining_quantity' in st.session_state.items_data.columns else 0
+    total_available = int(st.session_state.items_data['remaining_quantity'].sum()) if 'remaining_quantity' in st.session_state.items_data.columns else int(st.session_state.items_data['quantity'].sum())
     categories_count = len(get_categories()) - 1
     
     st.markdown(f"""
@@ -1132,16 +1316,14 @@ def show_home_page():
     </div>
     """, unsafe_allow_html=True)
     
-    # Search and refresh
     col1, col2 = st.columns([4, 1])
     with col1:
         search_query = st.text_input("🔍 Search items...", "", placeholder="Search by name, location, or description")
     with col2:
         st.write("")
-        if st.button("🔄", help="Refresh data", use_container_width=True):
+        if st.button("🔄 Refresh", help="Refresh data", use_container_width=True):
             refresh_data()
     
-    # Category filters
     st.markdown("**📂 Categories**")
     categories = get_categories()
     
@@ -1153,7 +1335,6 @@ def show_home_page():
             if st.button(f"{emoji} {category}", key=f"cat_{category}", type=button_type, use_container_width=True):
                 set_category(category)
     
-    # Filter data
     filtered_data = st.session_state.items_data.copy()
     
     # Filter by category
@@ -1168,6 +1349,9 @@ def show_home_page():
             filtered_data['description'].str.contains(search_query, case=False, na=False)
         )
         filtered_data = filtered_data[mask]
+    
+    # Optional: Hide fully reserved items (uncomment the line below to enable)
+    # filtered_data = filtered_data[filtered_data['remaining_quantity'] > 0]
     
     st.subheader(f"🛍️ Available Items ({len(filtered_data)})")
     
@@ -1224,7 +1408,7 @@ def show_home_page():
                 
                 st.markdown("---")
 
-# Enhanced item details page with reservation
+# Enhanced item details page with donation button
 def show_item_details():
     try:
         item = st.session_state.items_data[st.session_state.items_data['id'] == st.session_state.selected_item_id].iloc[0]
@@ -1253,32 +1437,29 @@ def show_item_details():
         </div>
         """, unsafe_allow_html=True)
         
-        # Show reservation status if partially or fully reserved
+        # Show reservation status
         if is_reserved:
             reserved_qty = total_qty - remaining
             if is_fully_reserved:
                 st.markdown("""
                 <div class="reservation-info">
-                    <strong>⚠️ This item is fully reserved</strong>
-                    <p>All available items have been reserved. Check back later for new items!</p>
+                    <strong>⚠️ This item is fully reserved</strong><br>
+                    All available items have been reserved. Check back later for new items!
                 </div>
                 """, unsafe_allow_html=True)
             else:
                 st.markdown(f"""
                 <div class="reservation-info">
-                    <strong>📊 Reservation Status</strong>
-                    <p>{reserved_qty} out of {total_qty} items have been reserved. {remaining} still available!</p>
+                    <strong>📊 Reservation Status:</strong> {reserved_qty} out of {total_qty} items have been reserved. {remaining} still available!
                 </div>
                 """, unsafe_allow_html=True)
         
-        # Image section
         if item.get('image_url') and str(item['image_url']).strip():
             st.markdown('<div class="photo-available">📸 Photo Available</div>', unsafe_allow_html=True)
             st.link_button("View Full Photo", item['image_url'], use_container_width=True)
         else:
             st.markdown('<div class="photo-not-available">📷 No Photo Available</div>', unsafe_allow_html=True)
         
-        # Item details
         st.subheader("📋 Item Details")
         
         col1, col2 = st.columns(2)
@@ -1293,7 +1474,6 @@ def show_item_details():
             if item.get('pickup_date') and str(item['pickup_date']).strip():
                 st.write(f"📅 **Ready by:** {item['pickup_date']}")
         
-        # Description
         st.subheader("📝 Description")
         st.markdown(f'<div class="item-description-box">{item.get("description", "Contact for more details")}</div>', unsafe_allow_html=True)
         
@@ -1306,7 +1486,7 @@ def show_item_details():
         
         st.markdown("---")
         
-        # Donation section
+        # DONATION SECTION
         st.markdown("""
         <div class="donation-section">
             <h4>💝 Support Our Cause</h4>
@@ -1329,13 +1509,13 @@ def show_item_details():
         
         st.markdown(f"""
         <div class="contact-section">
-            <h4>📞 Need More Information?</h4>
+            <h4>📞 Ready to pick this up?</h4>
             <p><strong>📧 Email:</strong> {item['contact_email']}</p>
             {f'<p><strong>📱 Phone:</strong> {item["contact_phone"]}</p>' if item.get('contact_phone') else ''}
         </div>
         """, unsafe_allow_html=True)
         
-        st.link_button("✉️ Contact for Questions", email_link, use_container_width=True)
+        st.link_button("✉️ Contact for Pickup", email_link, use_container_width=True)
         
         # Related items
         st.subheader("🔍 More from this category")
@@ -1343,13 +1523,12 @@ def show_item_details():
             (st.session_state.items_data['category'] == item['category']) & 
             (st.session_state.items_data['id'] != item['id']) &
             (st.session_state.items_data['remaining_quantity'] > 0)
-        ].head(3)
+        ].head(2)
         
         if not related_items.empty:
             for _, related_item in related_items.iterrows():
                 related_emoji = get_category_emoji(related_item['category'])
                 related_remaining = int(related_item['remaining_quantity'])
-                
                 col1, col2 = st.columns([3, 1])
                 with col1:
                     st.write(f"{related_emoji} **{related_item['name']}**")
@@ -1358,7 +1537,7 @@ def show_item_details():
                     if st.button("View", key=f"related_{related_item['id']}", use_container_width=True):
                         navigate_to_item_details(related_item['id'])
         else:
-            st.info("No other available items in this category.")
+            st.info("No other items in this category.")
             
         if item.get('timestamp'):
             st.caption(f"🕒 Listed on: {item['timestamp']}")
@@ -1373,7 +1552,7 @@ if st.session_state.current_page == 'home':
 elif st.session_state.current_page == 'item_details':
     show_item_details()
 
-# Footer
+# Beautiful footer
 st.markdown("---")
 st.markdown("**♻️ 4C Group - Marketplace**")
 st.caption("© 2025 • Transforming waste into opportunity")
