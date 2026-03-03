@@ -1489,8 +1489,8 @@ def show_item_details():
         </div>
         """, unsafe_allow_html=True)
         
-        st.link_button("❤️ Donate to Great Ormond Street Hospital Children's Charity", 
-                      "https://www.justgiving.com/page/4c-group-3?utm_medium=FR&utm_source=CL", 
+        st.link_button("❤️ 4C Group's fundraiser for Learning Disability Network London", 
+                      "https://www.justgiving.com/page/4cldn?utm_medium=FR&utm_source=CL&utm_campaign=020", 
                       use_container_width=True,
                       type="primary")
         
